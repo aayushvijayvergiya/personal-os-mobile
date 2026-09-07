@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Personal OS",
+    "slug": "personal-os-mobile",
+    "version": "0.1.0",
+    "scheme": "personalos",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aayushvijayvergiya.personalos"
+    },
+    "android": {
+      "package": "com.aayushvijayvergiya.personalos",
+      "adaptiveIcon": {
+        "backgroundColor": "#c0c0c0",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#d4d0c8"
+        }
+      ],
+      "expo-status-bar",
+      "@react-native-community/datetimepicker",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
