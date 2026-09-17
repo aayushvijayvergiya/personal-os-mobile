@@ -1,6 +1,8 @@
-import { taskFilterFor } from "@/lib/taskFilters";
+import { fromISO } from "@/lib/dates";
+import { taskFilterFor, taskOrClause } from "@/lib/taskFilters";
 
 const TODAY = "2026-07-19"; // a Sunday: ISO week ends the same day, month ends 2026-07-31
+const utc = (iso: string) => fromISO(iso).toISOString();
 
 describe("taskFilterFor", () => {
   it("Done tab shows only completed rows and ignores due dates", () => {
@@ -35,5 +37,48 @@ describe("taskFilterFor", () => {
       expect(taskFilterFor(tab, true, TODAY).excludeDone).toBe(false);
       expect(taskFilterFor(tab, false, TODAY).excludeDone).toBe(true);
     }
+  });
+
+  it("All + show completed keeps every completed row", () => {
+    expect(taskFilterFor("all", true, TODAY)).toEqual({ onlyDone: false, excludeDone: false });
+  });
+
+  it("Today + show completed keeps only rows completed today", () => {
+    expect(taskFilterFor("today", true, TODAY)).toEqual({
+      dueLte: "2026-07-19",
+      onlyDone: false,
+      excludeDone: false,
+      completedBetween: { from: utc("2026-07-19"), to: utc("2026-07-20") },
+    });
+  });
+
+  it("This Week + show completed keeps rows completed Mon..Sun of this week", () => {
+    expect(taskFilterFor("week", true, "2026-07-15").completedBetween).toEqual({
+      from: utc("2026-07-13"),
+      to: utc("2026-07-20"),
+    });
+  });
+
+  it("This Month + show completed keeps rows completed this calendar month", () => {
+    expect(taskFilterFor("month", true, TODAY).completedBetween).toEqual({
+      from: utc("2026-07-01"),
+      to: utc("2026-08-01"),
+    });
+  });
+});
+
+describe("taskOrClause", () => {
+  it("is null when completed rows are not windowed", () => {
+    expect(taskOrClause(taskFilterFor("today", false, TODAY))).toBeNull();
+    expect(taskOrClause(taskFilterFor("all", true, TODAY))).toBeNull();
+    expect(taskOrClause(taskFilterFor("done", true, TODAY))).toBeNull();
+  });
+
+  it("ORs open-rows-due-by-bound with done-rows-completed-in-window", () => {
+    const from = utc("2026-07-19");
+    const to = utc("2026-07-20");
+    expect(taskOrClause(taskFilterFor("today", true, TODAY))).toBe(
+      `and(status.neq.done,due_date.lte.2026-07-19),and(status.eq.done,completed_at.gte.${from},completed_at.lt.${to})`,
+    );
   });
 });

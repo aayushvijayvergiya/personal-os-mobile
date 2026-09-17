@@ -41,6 +41,14 @@ describe("Check", () => {
     await fireEvent.press(box);
     expect(onChange).toHaveBeenCalledWith(true);
   });
+
+  it("accessibilityLabel names the box for screen readers without rendering visible text", async () => {
+    const { getByRole, queryByText } = await renderWithProviders(
+      <Check checked={false} onChange={() => {}} accessibilityLabel="Buy milk" />,
+    );
+    expect(getByRole("checkbox").props.accessibilityLabel).toBe("Buy milk");
+    expect(queryByText("Buy milk")).toBeNull();
+  });
 });
 
 describe("TabBar", () => {

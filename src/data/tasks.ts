@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { todayISO } from "@/lib/dates";
-import { taskFilterFor, type TaskTab } from "@/lib/taskFilters";
+import { taskFilterFor, taskOrClause, type TaskTab } from "@/lib/taskFilters";
 import type { CustomFields, Task } from "@/lib/types";
 import { rows, toastError } from "./helpers";
 import { keys } from "./keys";
@@ -19,9 +19,11 @@ export function useTasks(tab: TaskTab, showDone: boolean) {
       let q = standalone()
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("priority");
+      const or = taskOrClause(f);
       if (f.onlyDone) q = q.eq("status", "done");
       if (f.excludeDone) q = q.neq("status", "done");
-      if (f.dueLte) q = q.lte("due_date", f.dueLte);
+      if (or) q = q.or(or);
+      else if (f.dueLte) q = q.lte("due_date", f.dueLte);
       return rows<Task>(await q);
     },
   });

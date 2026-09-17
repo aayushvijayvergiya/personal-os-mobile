@@ -32,11 +32,19 @@ export function ProjectTaskRow({
       title={task.title}
       strike={task.status === "done"}
       onPress={onOpen}
-      left={<Check checked={task.status === "done"} onChange={onToggle} label={task.title} />}
+      left={<Check checked={task.status === "done"} onChange={onToggle} accessibilityLabel={task.title} />}
       right={
         <>
           {showProject && project ? (
-            <View style={{ backgroundColor: project.color, paddingHorizontal: 4, paddingVertical: 1 }}>
+            <View
+              style={{
+                backgroundColor: project.color,
+                paddingHorizontal: 4,
+                paddingVertical: 1,
+                maxWidth: 96,
+                flexShrink: 1,
+              }}
+            >
               <Txt style={{ fontSize: t.metric.fontSmall, color: "#ffffff" }} numberOfLines={1}>
                 {project.name}
               </Txt>

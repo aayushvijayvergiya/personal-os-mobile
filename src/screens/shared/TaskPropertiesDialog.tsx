@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "react-native";
 import { useTaskMutations } from "@/data/tasks";
+import { completedAtForDate, todayISO, toISO } from "@/lib/dates";
 import { PRIORITY_OPTS } from "@/lib/taskUi";
 import type { CustomFields, Project, Task } from "@/lib/types";
 import { Btn, DateField, Dialog, FieldRow, Input, Select, TextArea } from "@/ui";
@@ -112,6 +113,17 @@ export function TaskPropertiesDialog({
               options={STATUS_OPTS}
             />
           </FieldRow>
+          {draft.status === "done" ? (
+            <FieldRow label="Completed:">
+              <DateField
+                value={draft.completed_at ? toISO(new Date(draft.completed_at)) : todayISO()}
+                onChange={(date) =>
+                  date && onChange({ ...draft, completed_at: completedAtForDate(draft.completed_at, date) })
+                }
+                title="Completed date"
+              />
+            </FieldRow>
+          ) : null}
           <FieldRow label="Description:">
             <TextArea
               rows={3}

@@ -8,11 +8,15 @@ export function Check({
   checked,
   onChange,
   label,
+  accessibilityLabel,
   disabled,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
+  /** Visible caption beside the box. */
   label?: string;
+  /** Screen-reader name when there is no visible caption (e.g. a list row that shows the title itself). */
+  accessibilityLabel?: string;
   disabled?: boolean;
 }) {
   const t = useTheme();
@@ -20,7 +24,7 @@ export function Check({
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked, disabled: !!disabled }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       disabled={disabled}
       onPress={() => onChange(!checked)}
       style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: t.metric.tap, opacity: disabled ? 0.5 : 1 }}
