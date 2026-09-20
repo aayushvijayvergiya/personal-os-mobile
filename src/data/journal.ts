@@ -140,8 +140,10 @@ export function useJournalQuestionMutations() {
   const edit = useMutation({
     mutationFn: async ({ question, prompt }: { question: JournalQuestion; prompt: string }) => {
       const newPrompt = prompt.trim();
+      if (!newPrompt || newPrompt === question.prompt) return;
       const today = todayISO();
-      const retire = await supabase.from("journal_questions").update({ retired_on: today }).eq("id", question.id);
+      const effective = question.journal_type === "weekly" ? weekStart(today) : today;
+      const retire = await supabase.from("journal_questions").update({ retired_on: effective }).eq("id", question.id);
       if (retire.error) throw new Error(retire.error.message);
       const created = await supabase
         .from("journal_questions")
@@ -149,18 +151,18 @@ export function useJournalQuestionMutations() {
           prompt: newPrompt,
           journal_type: question.journal_type,
           sort_order: question.sort_order,
-          created_on: today,
+          created_on: effective,
+          active: question.active,
         })
         .select()
         .single();
       if (created.error) throw new Error(created.error.message);
       const newQuestion = created.data as JournalQuestion;
 
-      const currentDate = question.journal_type === "weekly" ? weekStart(today) : today;
       const existing = await supabase
         .from("journal_entries")
         .select("*")
-        .eq("date", currentDate)
+        .eq("date", effective)
         .eq("type", question.journal_type)
         .maybeSingle();
       if (existing.error) toastError(existing.error); // best-effort: the rename already succeeded, this only affects carry-over
