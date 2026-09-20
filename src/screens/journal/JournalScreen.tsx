@@ -4,6 +4,7 @@ import { useHabitEntries, useHabitMutations, useHabits } from "@/data/habits";
 import { useJournalEntry, useJournalQuestions } from "@/data/journal";
 import { useTaskMutations, useTasksDueOn } from "@/data/tasks";
 import { addDays, fmt, isoWeekLabel, todayISO, weekStart } from "@/lib/dates";
+import { filterQuestionsForDate } from "@/lib/journalDefaults";
 import type { JournalType } from "@/lib/types";
 import { useTheme } from "@/theme/useTheme";
 import { Btn, Check, Chip, EmptyState, Screen, TabBar, TabPanel, Txt } from "@/ui";
@@ -40,6 +41,7 @@ export function JournalScreen() {
   const habitChecked = (habitId: string) =>
     (entries.data ?? []).some((e) => e.habit_id === habitId && e.checked);
   const dayTasks = tasks.data ?? [];
+  const liveQuestions = filterQuestionsForDate(questions.data ?? [], type, date);
   const tasksDone = dayTasks.filter((task) => task.status === "done").length;
 
   return (
@@ -116,7 +118,7 @@ export function JournalScreen() {
           <JournalBody
             key={`${type}:${date}`}
             entry={entry.data}
-            questions={questions.data ?? []}
+            questions={liveQuestions}
             type={type}
             date={date}
             heading={heading}

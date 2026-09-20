@@ -9,6 +9,7 @@ export { EmptyState } from "./EmptyState";
 export { Fab } from "./Fab";
 export { FieldRow } from "./FieldRow";
 export { Input } from "./Input";
+export { KeyboardScrollView, useKeyboardScroll } from "./KeyboardScroll";
 export { ListBox, ListRow } from "./ListRow";
 export { MonthField, QuarterField, YearField } from "./PeriodFields";
 export { Progress } from "./Progress";

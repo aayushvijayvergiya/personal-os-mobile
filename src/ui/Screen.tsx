@@ -1,8 +1,9 @@
 import React from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/useTheme";
 import { Btn } from "./Btn";
+import { KeyboardScrollView } from "./KeyboardScroll";
 import { StatusStrip } from "./StatusStrip";
 
 /**
@@ -51,7 +52,7 @@ export function Screen({
         </View>
       ) : null}
       {scroll ? (
-        <ScrollView
+        <KeyboardScrollView
           contentContainerStyle={[pad, fab ? { paddingBottom: 80 } : null]}
           keyboardShouldPersistTaps="handled"
           refreshControl={
@@ -61,7 +62,7 @@ export function Screen({
           }
         >
           {children}
-        </ScrollView>
+        </KeyboardScrollView>
       ) : (
         <View style={[{ flex: 1, minHeight: 0 }, pad]}>{children}</View>
       )}

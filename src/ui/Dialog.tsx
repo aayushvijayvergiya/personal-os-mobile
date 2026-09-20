@@ -1,8 +1,9 @@
 import React from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, View } from "react-native";
 import { useTheme } from "@/theme/useTheme";
 import { Bevel } from "./Bevel";
 import { Btn } from "./Btn";
+import { KeyboardScrollView } from "./KeyboardScroll";
 import { TitleBar } from "./TitleBar";
 
 /** A retro "Properties" window: dimmed backdrop, title bar with ✕, scrollable body, sticky footer. */
@@ -25,6 +26,8 @@ export function Dialog({
   if (!open) return null;
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      {/* Shrinks the whole dialog (not just the scroll body) on iOS so the footer buttons stay above
+          the keyboard — a separate job from `KeyboardScrollView`, which only scrolls the focused field. */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <Pressable
           accessibilityLabel="Close dialog"
@@ -43,13 +46,13 @@ export function Dialog({
                   </Btn>
                 }
               />
-              <ScrollView
+              <KeyboardScrollView
                 contentContainerStyle={{ padding: 10, gap: 8 }}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
               >
                 {children}
-              </ScrollView>
+              </KeyboardScrollView>
               {footer ? (
                 <View
                   style={{
