@@ -20,6 +20,8 @@ const question: JournalQuestion = {
   journal_type: "daily",
   sort_order: 0,
   active: true,
+  created_on: "2026-01-01",
+  retired_on: null,
 };
 
 const entry: JournalEntry = {
