@@ -26,6 +26,7 @@ function QuestionPromptInput({
       onBlur={() => {
         const trimmed = text.trim();
         if (trimmed && trimmed !== question.prompt) onCommit(trimmed);
+        else setText(question.prompt); // undo a cleared-then-blurred field back to the real prompt
       }}
     />
   );

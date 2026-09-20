@@ -163,6 +163,7 @@ export function useJournalQuestionMutations() {
         .eq("date", currentDate)
         .eq("type", question.journal_type)
         .maybeSingle();
+      if (existing.error) toastError(existing.error); // best-effort: the rename already succeeded, this only affects carry-over
       const entry = existing.data as JournalEntry | null;
       const value = entry?.answers[question.id];
       if (entry && value) {

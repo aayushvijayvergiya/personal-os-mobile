@@ -51,6 +51,15 @@ describe("JournalQuestionsPanel", () => {
     expect(edit.mutate).not.toHaveBeenCalled();
   });
 
+  it("reverts a cleared field back to the prompt on blur instead of leaving it blank", async () => {
+    const { getByDisplayValue } = await renderWithProviders(<JournalQuestionsPanel />);
+    const field = getByDisplayValue("What went well today?");
+    await fireEvent.changeText(field, "");
+    await fireEvent(field, "blur");
+    expect(getByDisplayValue("What went well today?")).toBeTruthy();
+    expect(edit.mutate).not.toHaveBeenCalled();
+  });
+
   it("removes a question after confirming", async () => {
     jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
       buttons?.find((b) => b.text === "Remove")?.onPress?.();
