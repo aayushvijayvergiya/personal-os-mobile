@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { todayISO } from "@/lib/dates";
+import type { Recurrence } from "@/lib/recurrence";
 import { taskFilterFor, taskOrClause, type TaskTab } from "@/lib/taskFilters";
 import type { CustomFields, Task } from "@/lib/types";
 import { rows, toastError } from "./helpers";
 import { keys } from "./keys";
 import { supabase } from "./supabase";
+import { completeTask, spawnNext } from "./taskRecurrence";
 
 /** Standalone tasks only — project tasks live in the Projects module, as on the web. */
 function standalone() {
@@ -92,6 +94,7 @@ export interface TaskDraft {
   status?: Task["status"];
   project_id?: string | null;
   custom_fields?: CustomFields;
+  recurrence?: Recurrence | null;
 }
 
 export function useTaskMutations() {
@@ -108,6 +111,7 @@ export function useTaskMutations() {
         due_date: draft.due_date ?? null,
         priority: draft.priority ?? 2,
         project_id: draft.project_id ?? null,
+        recurrence: draft.recurrence ?? null,
       });
       if (error) throw new Error(error.message);
     },
@@ -117,6 +121,8 @@ export function useTaskMutations() {
 
   const update = useMutation({
     mutationFn: async (task: Task) => {
+      // Spawn the next occurrence only when this save is what completes the task.
+      const { data: prev } = await supabase.from("tasks").select("status").eq("id", task.id).maybeSingle();
       const { error } = await supabase
         .from("tasks")
         .update({
@@ -127,11 +133,13 @@ export function useTaskMutations() {
           status: task.status,
           project_id: task.project_id,
           custom_fields: task.custom_fields,
+          recurrence: task.recurrence ?? null,
           completed_at:
             task.status === "done" ? (task.completed_at ?? new Date().toISOString()) : null,
         })
         .eq("id", task.id);
       if (error) throw new Error(error.message);
+      if (prev && prev.status !== "done" && task.status === "done") await spawnNext(task, todayISO());
     },
     onSuccess: invalidate,
     onError: toastError,
@@ -149,13 +157,10 @@ export function useTaskMutations() {
   /** Optimistic, because ticking a checkbox must feel instant. */
   const toggleDone = useMutation({
     mutationFn: async (task: Task) => {
-      const done = task.status !== "done";
+      if (task.status !== "done") return completeTask(task, todayISO());
       const { error } = await supabase
         .from("tasks")
-        .update({
-          status: done ? "done" : "open",
-          completed_at: done ? new Date().toISOString() : null,
-        })
+        .update({ status: "open", completed_at: null })
         .eq("id", task.id);
       if (error) throw new Error(error.message);
     },

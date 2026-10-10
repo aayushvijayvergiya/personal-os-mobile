@@ -112,5 +112,29 @@ export function useHabitMutations() {
     onError: toastError,
   });
 
-  return { toggle, create, rename, setActive, swapOrder };
+  /** Optimistic: the schedule chips must respond instantly; rolls back and toasts on failure. */
+  const setSchedule = useMutation({
+    mutationFn: async ({ id, days }: { id: string; days: number[] }) => {
+      const { error } = await supabase.from("habits").update({ schedule_days: days }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onMutate: async ({ id, days }) => {
+      await qc.cancelQueries({ queryKey: keys.habits.all });
+      const prev = qc.getQueryData<Habit[]>(keys.habits.all);
+      qc.setQueryData<Habit[]>(keys.habits.all, (list) =>
+        list?.map((h) => (h.id === id ? { ...h, schedule_days: days } : h)),
+      );
+      return { prev };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.prev) qc.setQueryData(keys.habits.all, context.prev);
+      toastError(error);
+    },
+    onSettled: () => {
+      invalidateHabits();
+      qc.invalidateQueries({ queryKey: keys.stats });
+    },
+  });
+
+  return { toggle, create, rename, setActive, swapOrder, setSchedule };
 }
