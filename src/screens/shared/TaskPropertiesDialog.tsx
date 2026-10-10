@@ -71,11 +71,11 @@ export function TaskPropertiesDialog({
             primary
             onPress={() => {
               if (!draft) return;
-              const rule =
-                allowRepeat && draft.recurrence ? withAnchor(draft.recurrence, draft.due_date) : draft.recurrence;
-              const problem = allowRepeat ? recurrenceError(rule, draft.due_date) : null;
+              // Not re-anchored here: the due-date field already re-anchors a monthly rule when the date
+              // changes, and a clamped copy (due Feb 28, day 31) must keep its day.
+              const problem = allowRepeat ? recurrenceError(draft.recurrence, draft.due_date) : null;
               if (problem) return showToast(problem); // keep the dialog open
-              update.mutate({ ...draft, recurrence: rule });
+              update.mutate(draft);
               onClose();
             }}
           >

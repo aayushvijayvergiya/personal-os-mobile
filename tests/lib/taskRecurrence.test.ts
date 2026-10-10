@@ -27,4 +27,21 @@ describe("nextTaskRow", () => {
   it("completed weeks late: next is in the future, not another overdue date", () => {
     expect(nextTaskRow(base, "2026-10-28")!.due_date).toBe("2026-11-02"); // Wed 10-28 -> next Mon
   });
+
+  it("late monthly task keeps the monthly schedule (this month's date, if still ahead)", () => {
+    const t = { ...base, recurrence: { freq: "monthly" as const, interval: 1, day: 20 }, due_date: "2026-01-20" };
+    expect(nextTaskRow(t, "2026-02-05")!.due_date).toBe("2026-02-20");
+  });
+  it("late month-end task lands on the clamped month end", () => {
+    const t = { ...base, recurrence: { freq: "monthly" as const, interval: 1, day: 31 }, due_date: "2026-01-31" };
+    expect(nextTaskRow(t, "2026-02-01")!.due_date).toBe("2026-02-28");
+  });
+  it("late fortnightly task keeps its two-week phase", () => {
+    const t = { ...base, recurrence: { freq: "weekly" as const, interval: 2, days: [0] }, due_date: "2026-01-05" };
+    expect(nextTaskRow(t, "2026-01-14")!.due_date).toBe("2026-01-19");
+  });
+  it("late every-3-days task keeps its phase", () => {
+    const t = { ...base, recurrence: { freq: "daily" as const, interval: 3 }, due_date: "2026-01-01" };
+    expect(nextTaskRow(t, "2026-01-05")!.due_date).toBe("2026-01-07");
+  });
 });

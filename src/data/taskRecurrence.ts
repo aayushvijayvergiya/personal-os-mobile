@@ -6,6 +6,10 @@ import { supabase } from "./supabase";
 export async function spawnNext(t: Task, todayIso: string): Promise<void> {
   const row = nextTaskRow(t, todayIso);
   if (!row) return;
+  // Complete → reopen → complete would otherwise leave two identical open occurrences.
+  const dup = supabase.from("tasks").select("id").eq("title", row.title).eq("due_date", row.due_date).neq("status", "done");
+  const { data: existing } = await (row.project_id === null ? dup.is("project_id", null) : dup.eq("project_id", row.project_id)).limit(1);
+  if (existing && existing.length > 0) return;
   const { error } = await supabase.from("tasks").insert(row);
   if (error) throw new Error(`Task completed, but creating the next occurrence failed: ${error.message}`);
 }
