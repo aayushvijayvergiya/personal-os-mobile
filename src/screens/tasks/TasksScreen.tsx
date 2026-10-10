@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { useTaskMutations, useTasks } from "@/data/tasks";
 import { fmt, todayISO } from "@/lib/dates";
 import { TASK_TABS, type TaskTab } from "@/lib/taskFilters";
+import { describeRule, recurrenceError, withAnchor, type Recurrence } from "@/lib/recurrence";
 import { PRIORITY_OPTS, priorityTone } from "@/lib/taskUi";
 import type { Task } from "@/lib/types";
 import { useTheme } from "@/theme/useTheme";
@@ -19,7 +20,9 @@ import {
   TabBar,
   TabPanel,
   Txt,
+  showToast,
 } from "@/ui";
+import { RecurrenceEditor } from "../shared/RecurrenceEditor";
 import { TaskPropertiesDialog } from "../shared/TaskPropertiesDialog";
 
 export function TasksScreen() {
@@ -31,14 +34,19 @@ export function TasksScreen() {
   const [due, setDue] = useState<string | null>(today);
   const [priority, setPriority] = useState("2");
   const [detail, setDetail] = useState<Task | null>(null);
+  const [newRule, setNewRule] = useState<Recurrence | null>(null);
 
   const { data: tasks = [], isLoading, refetch, isRefetching } = useTasks(tab, showDone);
   const { create, toggleDone } = useTaskMutations();
 
   function add() {
     if (!title.trim()) return;
-    create.mutate({ title, due_date: due, priority: Number(priority) });
+    const rule = newRule ? withAnchor(newRule, due) : null;
+    const problem = recurrenceError(rule, due);
+    if (problem) return showToast(problem);
+    create.mutate({ title, due_date: due, priority: Number(priority), recurrence: rule });
     setTitle("");
+    setNewRule(null);
   }
 
   const doneCount = tasks.filter((task) => task.status === "done").length;
@@ -56,7 +64,15 @@ export function TasksScreen() {
         />
         <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
           <View style={{ flex: 1 }}>
-            <DateField value={due} onChange={setDue} allowClear title="Due date" />
+            <DateField
+              value={due}
+              onChange={(d) => {
+                setDue(d);
+                setNewRule((r) => (r ? withAnchor(r, d) : r));
+              }}
+              allowClear
+              title="Due date"
+            />
           </View>
           <View style={{ width: 92 }}>
             <Select title="Priority" value={priority} onChange={setPriority} options={PRIORITY_OPTS} />
@@ -65,6 +81,12 @@ export function TasksScreen() {
             Add
           </Btn>
         </View>
+        <Check
+          label="Repeat"
+          checked={!!newRule}
+          onChange={(on) => setNewRule(on ? withAnchor({ freq: "daily", interval: 1 }, due) : null)}
+        />
+        {newRule ? <RecurrenceEditor value={newRule} anchorIso={due} onChange={setNewRule} /> : null}
 
         {tab !== "done" ? (
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -88,7 +110,11 @@ export function TasksScreen() {
                 last={i === tasks.length - 1}
                 strike={task.status === "done"}
                 title={task.title}
-                subtitle={task.description}
+                subtitle={
+                  [task.recurrence ? `🔁 ${describeRule(task.recurrence)}` : null, task.description]
+                    .filter(Boolean)
+                    .join("\n") || null
+                }
                 onPress={() => setDetail({ ...task })}
                 left={<Check checked={task.status === "done"} onChange={() => toggleDone.mutate(task)} />}
                 right={
@@ -111,7 +137,7 @@ export function TasksScreen() {
         </ListBox>
       </TabPanel>
 
-      <TaskPropertiesDialog draft={detail} onChange={setDetail} onClose={() => setDetail(null)} />
+      <TaskPropertiesDialog allowRepeat draft={detail} onChange={setDetail} onClose={() => setDetail(null)} />
     </Screen>
   );
 }
