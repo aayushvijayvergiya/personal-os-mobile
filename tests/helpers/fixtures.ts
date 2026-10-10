@@ -29,13 +29,14 @@ export function makeTask(over: Partial<Task> = {}): Task {
     completed_at: null,
     project_id: null,
     custom_fields: {},
+    recurrence: null,
     created_at: "2026-07-01T00:00:00Z",
     ...over,
   };
 }
 
 export function makeHabit(over: Partial<Habit> = {}): Habit {
-  return { id: "habit-1", name: "Read", icon: "📚", active: true, sort_order: 0, ...over };
+  return { id: "habit-1", name: "Read", icon: "📚", active: true, sort_order: 0, schedule_days: [0, 1, 2, 3, 4, 5, 6], ...over };
 }
 
 export function makeHabitEntry(over: Partial<HabitEntry> = {}): HabitEntry {
