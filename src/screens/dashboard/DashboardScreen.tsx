@@ -9,6 +9,7 @@ import { addDays, fmt, todayISO } from "@/lib/dates";
 import { currentValues } from "@/lib/horizons";
 import { isOverdue, sortReadingItems } from "@/lib/reading";
 import { openFromTab } from "@/lib/moreNavigation";
+import { isScheduled } from "@/lib/recurrence";
 import { computeStreaks } from "@/lib/streaks";
 import { useTheme } from "@/theme/useTheme";
 import { Btn, Check, EmptyState, Fab, Progress, Screen, Txt, Window } from "@/ui";
@@ -71,6 +72,10 @@ export function DashboardScreen() {
   };
 
   const activeHabits = useMemo(() => (habits.data ?? []).filter((h) => h.active), [habits.data]);
+  const dueHabits = useMemo(
+    () => activeHabits.filter((h) => isScheduled(h.schedule_days, today)),
+    [activeHabits, today],
+  );
   const entryRows = useMemo(() => entries.data ?? [], [entries.data]);
   const checkedOn = (habitId: string, date: string) =>
     entryRows.some((e) => e.habit_id === habitId && e.date === date && e.checked);
@@ -79,7 +84,7 @@ export function DashboardScreen() {
     const map = new Map<string, ReturnType<typeof computeStreaks>>();
     for (const habit of activeHabits) {
       const dates = entryRows.filter((e) => e.habit_id === habit.id && e.checked).map((e) => e.date);
-      map.set(habit.id, computeStreaks(dates, today));
+      map.set(habit.id, computeStreaks(dates, today, habit.schedule_days));
     }
     return map;
   }, [activeHabits, entryRows, today]);
@@ -107,7 +112,7 @@ export function DashboardScreen() {
   const open = openTasks.data ?? [];
   const done = doneTasks.data ?? [];
   const total = open.length + done.length;
-  const habitsDone = activeHabits.filter((h) => checkedOn(h.id, today)).length;
+  const habitsDone = dueHabits.filter((h) => checkedOn(h.id, today)).length;
   const bestStreak = activeHabits.reduce((m, h) => Math.max(m, streaks.get(h.id)?.current ?? 0), 0);
 
   return (
@@ -220,12 +225,13 @@ export function DashboardScreen() {
         icon="✅"
         actions={
           <Txt variant="title">
-            {habitsDone} / {activeHabits.length}
+            {habitsDone} / {dueHabits.length}
           </Txt>
         }
       >
         {activeHabits.length === 0 ? <EmptyState text="No habits configured." /> : null}
-        {activeHabits.map((habit) => (
+        {activeHabits.length > 0 && dueHabits.length === 0 ? <EmptyState text="No habits scheduled today." /> : null}
+        {dueHabits.map((habit) => (
           <View
             key={habit.id}
             style={{ borderBottomWidth: 1, borderBottomColor: t.color.desk, paddingVertical: 4 }}
@@ -249,7 +255,7 @@ export function DashboardScreen() {
 
       <Window title="At a Glance" icon="📊">
         <GlanceRow label="Tasks today" value={`${done.length} / ${total}`} />
-        <GlanceRow label="Habits today" value={`${habitsDone} / ${activeHabits.length}`} />
+        <GlanceRow label="Habits today" value={`${habitsDone} / ${dueHabits.length}`} />
         <GlanceRow label="Longest streak" value={`🔥 ${bestStreak}`} />
         <GlanceRow label="Goals in focus" value={String(focusGoals.length)} />
         <GlanceRow label="Books reading" value={String(reading.length)} />

@@ -12,6 +12,7 @@ jest.mock("@/data/stats");
 
 describe("HabitsScreen", () => {
   const toggle = mutationsStub();
+  const setSchedule = mutationsStub();
   const today = todayISO();
 
   beforeEach(() => {
@@ -32,6 +33,7 @@ describe("HabitsScreen", () => {
       rename: mutationsStub(),
       setActive: mutationsStub(),
       swapOrder: mutationsStub(),
+      setSchedule,
     });
   });
 
@@ -55,5 +57,31 @@ describe("HabitsScreen", () => {
     await fireEvent.press(getByText("Manage habits…"));
     expect(getByLabelText("Rename Retired one")).toBeTruthy();
     expect(getByText("Restore")).toBeTruthy();
+  });
+
+  it("labels non-daily habits with their schedule", async () => {
+    (useHabits as jest.Mock).mockReturnValue(
+      queryStub([makeHabit({ id: "h1", name: "Run", icon: "🏃", schedule_days: [5, 6] })]),
+    );
+    const { getByText } = await renderWithProviders(<HabitsScreen />);
+    expect(getByText("Weekends")).toBeTruthy();
+  });
+
+  it("edits an existing habit's schedule from Manage habits", async () => {
+    const { getByText, getAllByLabelText } = await renderWithProviders(<HabitsScreen />);
+    await fireEvent.press(getByText("Manage habits…"));
+    // First habit listed is "Read" (every day); turning Saturday off leaves the other six days.
+    await fireEvent.press(getAllByLabelText("Sat")[0]);
+    expect(setSchedule.mutate).toHaveBeenCalledWith({ id: "h1", days: [0, 1, 2, 3, 4, 6] });
+  });
+
+  it("refuses to clear every day", async () => {
+    (useHabits as jest.Mock).mockReturnValue(
+      queryStub([makeHabit({ id: "h1", name: "Read", schedule_days: [6] })]),
+    );
+    const { getByText, getAllByLabelText } = await renderWithProviders(<HabitsScreen />);
+    await fireEvent.press(getByText("Manage habits…"));
+    await fireEvent.press(getAllByLabelText("Sun")[0]);
+    expect(setSchedule.mutate).not.toHaveBeenCalled();
   });
 });

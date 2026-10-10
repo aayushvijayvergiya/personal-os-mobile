@@ -11,12 +11,15 @@ export function DayToggle({
   checked,
   disabled,
   highlight,
+  unscheduled,
   label,
   onPress,
 }: {
   checked: boolean;
   disabled?: boolean;
   highlight?: boolean;
+  /** Not a scheduled day for this habit: dimmed, but still tappable as a bonus check-in. */
+  unscheduled?: boolean;
   label: string;
   onPress: () => void;
 }) {
@@ -33,8 +36,8 @@ export function DayToggle({
         height: 46,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: highlight ? t.color.paperTint : "transparent",
-        opacity: disabled ? 0.35 : 1,
+        backgroundColor: highlight ? t.color.paperTint : unscheduled ? t.color.face : "transparent",
+        opacity: disabled ? 0.35 : unscheduled ? 0.6 : 1,
       }}
     >
       <View
