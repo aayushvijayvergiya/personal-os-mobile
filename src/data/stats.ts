@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { todayISO } from "@/lib/dates";
-import { isScheduled } from "@/lib/recurrence";
+import { isScheduled, withSchedule } from "@/lib/recurrence";
 import { keys } from "./keys";
 import { supabase } from "./supabase";
 
@@ -25,8 +25,8 @@ export function useStats(): string | null {
         supabase.from("habit_entries").select("habit_id").eq("date", today).eq("checked", true),
       ]);
       const scheduled = new Set(
-        ((habits.data ?? []) as { id: string; schedule_days: number[] }[])
-          .filter((h) => isScheduled(h.schedule_days, today))
+        ((habits.data ?? []) as { id: string; schedule_days?: number[] }[])
+          .filter((h) => isScheduled(withSchedule(h).schedule_days, today))
           .map((h) => h.id),
       );
       const habitsDone = ((done.data ?? []) as { habit_id: string }[]).filter((e) => scheduled.has(e.habit_id)).length;

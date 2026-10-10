@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { withSchedule } from "@/lib/recurrence";
 import type { Habit, HabitEntry } from "@/lib/types";
 import { rows, toastError } from "./helpers";
 import { keys } from "./keys";
@@ -8,7 +9,8 @@ import { supabase } from "./supabase";
 export function useHabits() {
   return useQuery({
     queryKey: keys.habits.all,
-    queryFn: async () => rows<Habit>(await supabase.from("habits").select("*").order("sort_order")),
+    queryFn: async () =>
+      rows<Habit>(await supabase.from("habits").select("*").order("sort_order")).map(withSchedule),
   });
 }
 

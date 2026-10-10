@@ -111,7 +111,8 @@ export function useTaskMutations() {
         due_date: draft.due_date ?? null,
         priority: draft.priority ?? 2,
         project_id: draft.project_id ?? null,
-        recurrence: draft.recurrence ?? null,
+        // Omitted for one-time tasks so a database without migration 005 still accepts the insert.
+        ...(draft.recurrence ? { recurrence: draft.recurrence } : {}),
       });
       if (error) throw new Error(error.message);
     },
@@ -133,7 +134,7 @@ export function useTaskMutations() {
           status: task.status,
           project_id: task.project_id,
           custom_fields: task.custom_fields,
-          recurrence: task.recurrence ?? null,
+          ...(task.recurrence !== undefined ? { recurrence: task.recurrence } : {}),
           completed_at:
             task.status === "done" ? (task.completed_at ?? new Date().toISOString()) : null,
         })
