@@ -2,10 +2,11 @@ import React, { useMemo, useState } from "react";
 import { View } from "react-native";
 import { useHabitEntries, useHabitMutations, useHabits } from "@/data/habits";
 import { addDays, fmt, fromISO, todayISO, weekDates } from "@/lib/dates";
+import { describeDays, isScheduled } from "@/lib/recurrence";
 import { computeStreaks } from "@/lib/streaks";
 import type { Habit } from "@/lib/types";
 import { useTheme } from "@/theme/useTheme";
-import { Btn, Dialog, EmptyState, Input, Screen, Txt, Window } from "@/ui";
+import { Btn, Dialog, EmptyState, Input, Screen, Txt, WeekdayPicker, Window, showToast } from "@/ui";
 import { DayToggle } from "./DayToggle";
 
 /** "1 – 7 Sep 2026", or "29 Aug – 4 Sep 2026" across a month boundary. */
@@ -47,7 +48,7 @@ export function HabitsScreen() {
   const habits = useHabits();
   // 60 days of history covers the current streak and the 30-day rate.
   const entries = useHabitEntries(addDays(anchor, -60), addDays(anchor, 7));
-  const { toggle, create, rename, setActive, swapOrder } = useHabitMutations();
+  const { toggle, create, rename, setActive, swapOrder, setSchedule } = useHabitMutations();
 
   const all = habits.data ?? [];
   const active = all.filter((h) => h.active);
@@ -60,7 +61,13 @@ export function HabitsScreen() {
     computeStreaks(
       rows.filter((e) => e.habit_id === habit.id && e.checked).map((e) => e.date),
       today,
+      habit.schedule_days,
     );
+
+  function changeSchedule(habit: Habit, nextDays: number[]) {
+    if (nextDays.length === 0) return showToast("Pick at least one day");
+    setSchedule.mutate({ id: habit.id, days: nextDays });
+  }
 
   function addHabit() {
     if (!newName.trim()) return;
@@ -133,7 +140,8 @@ export function HabitsScreen() {
 
         {active.map((habit) => {
           const stats = statsFor(habit);
-          const thisWeek = days.filter((date) => isChecked(habit.id, date)).length;
+          const scheduledThisWeek = days.filter((date) => isScheduled(habit.schedule_days, date));
+          const thisWeek = scheduledThisWeek.filter((date) => isChecked(habit.id, date)).length;
           return (
             <View
               key={habit.id}
@@ -144,14 +152,21 @@ export function HabitsScreen() {
                   {habit.icon} {habit.name}
                 </Txt>
                 <Txt variant="muted" style={{ fontSize: t.metric.fontSmall }}>
-                  {thisWeek}/7
+                  {thisWeek}/{scheduledThisWeek.length}
                 </Txt>
               </View>
+
+              {habit.schedule_days.length < 7 ? (
+                <Txt variant="muted" style={{ fontSize: t.metric.fontSmall, marginTop: -4, marginBottom: 6 }}>
+                  {describeDays(habit.schedule_days)}
+                </Txt>
+              ) : null}
 
               <View style={{ flexDirection: "row" }}>
                 {days.map((date) => (
                   <DayToggle
                     key={date}
+                    unscheduled={!isScheduled(habit.schedule_days, date)}
                     checked={isChecked(habit.id, date)}
                     disabled={date > today}
                     highlight={date === today}
@@ -237,6 +252,7 @@ export function HabitsScreen() {
                 {habit.active ? "Retire" : "Restore"}
               </Btn>
             </View>
+            <WeekdayPicker presets value={habit.schedule_days} onChange={(nextDays) => changeSchedule(habit, nextDays)} />
           </View>
         ))}
       </Dialog>

@@ -68,9 +68,9 @@ describe("TasksScreen", () => {
 
   it("toggles a task done", async () => {
     const { getAllByRole } = await renderWithProviders(<TasksScreen />);
-    // The first checkbox is "Show completed"; task checkboxes follow.
+    // The first two checkboxes are "Repeat" and "Show completed"; task checkboxes follow.
     const boxes = getAllByRole("checkbox");
-    await fireEvent.press(boxes[1]);
+    await fireEvent.press(boxes[2]);
     expect(toggleDone.mutate).toHaveBeenCalledWith(expect.objectContaining({ id: "t1" }));
   });
 
@@ -78,5 +78,35 @@ describe("TasksScreen", () => {
     mockUseTasks.mockReturnValue(queryStub([]));
     const { getByText } = await renderWithProviders(<TasksScreen />);
     expect(getByText("No tasks here. Add one above. ▲")).toBeTruthy();
+  });
+
+  it("shows a repeat badge on repeating tasks", async () => {
+    mockUseTasks.mockReturnValue(
+      queryStub([
+        makeTask({ id: "t3", title: "Stretch", due_date: "2026-07-19", recurrence: { freq: "weekly", interval: 1, days: [0, 3] } }),
+      ]),
+    );
+    const { getByText } = await renderWithProviders(<TasksScreen />);
+    expect(getByText("🔁 Every week on Mon, Thu")).toBeTruthy();
+  });
+
+  it("adds a repeating task with its rule", async () => {
+    const { getByPlaceholderText, getByText, getByLabelText } = await renderWithProviders(<TasksScreen />);
+    await fireEvent.changeText(getByPlaceholderText("New task title…"), "Water plants");
+    await fireEvent.press(getByText("Repeat"));
+    await fireEvent.changeText(getByLabelText("Repeat interval"), "3");
+    await fireEvent.press(getByText("Add"));
+    expect(create.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Water plants", recurrence: { freq: "daily", interval: 3 } }),
+    );
+  });
+
+  it("refuses an invalid repeat interval", async () => {
+    const { getByPlaceholderText, getByText, getByLabelText } = await renderWithProviders(<TasksScreen />);
+    await fireEvent.changeText(getByPlaceholderText("New task title…"), "Water plants");
+    await fireEvent.press(getByText("Repeat"));
+    await fireEvent.changeText(getByLabelText("Repeat interval"), "0");
+    await fireEvent.press(getByText("Add"));
+    expect(create.mutate).not.toHaveBeenCalled();
   });
 });

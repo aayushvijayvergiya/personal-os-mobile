@@ -2,10 +2,12 @@ import React from "react";
 import { Alert } from "react-native";
 import { useTaskMutations } from "@/data/tasks";
 import { completedAtForDate, todayISO, toISO } from "@/lib/dates";
+import { recurrenceError, withAnchor } from "@/lib/recurrence";
 import { PRIORITY_OPTS } from "@/lib/taskUi";
 import type { CustomFields, Project, Task } from "@/lib/types";
-import { Btn, DateField, Dialog, FieldRow, Input, Select, TextArea } from "@/ui";
+import { Btn, Check, DateField, Dialog, FieldRow, Input, Select, TextArea, showToast } from "@/ui";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
+import { RecurrenceEditor } from "./RecurrenceEditor";
 
 const STATUS_OPTS = [
   { value: "open", label: "Open" },
@@ -23,11 +25,14 @@ export function TaskPropertiesDialog({
   onChange,
   onClose,
   projects,
+  allowRepeat = false,
 }: {
   draft: Task | null;
   onChange: (next: Task) => void;
   onClose: () => void;
   projects?: Project[];
+  /** Show the Repeat field. Only the Tasks module sets this; Projects tasks don't repeat. */
+  allowRepeat?: boolean;
 }) {
   const { update, remove } = useTaskMutations();
 
@@ -65,7 +70,12 @@ export function TaskPropertiesDialog({
             small
             primary
             onPress={() => {
-              if (draft) update.mutate(draft);
+              if (!draft) return;
+              // Not re-anchored here: the due-date field already re-anchors a monthly rule when the date
+              // changes, and a clamped copy (due Feb 28, day 31) must keep its day.
+              const problem = allowRepeat ? recurrenceError(draft.recurrence, draft.due_date) : null;
+              if (problem) return showToast(problem); // keep the dialog open
+              update.mutate(draft);
               onClose();
             }}
           >
@@ -92,7 +102,13 @@ export function TaskPropertiesDialog({
           <FieldRow label="Due date:">
             <DateField
               value={draft.due_date}
-              onChange={(due_date) => onChange({ ...draft, due_date })}
+              onChange={(due_date) =>
+                onChange({
+                  ...draft,
+                  due_date,
+                  recurrence: allowRepeat && draft.recurrence ? withAnchor(draft.recurrence, due_date) : draft.recurrence,
+                })
+              }
               allowClear
               title="Due date"
             />
@@ -105,6 +121,24 @@ export function TaskPropertiesDialog({
               options={PRIORITY_OPTS}
             />
           </FieldRow>
+          {allowRepeat ? (
+            <FieldRow label="Repeat:">
+              <Check
+                label="Repeats"
+                checked={!!draft.recurrence}
+                onChange={(on) =>
+                  onChange({ ...draft, recurrence: on ? withAnchor({ freq: "daily", interval: 1 }, draft.due_date) : null })
+                }
+              />
+              {draft.recurrence ? (
+                <RecurrenceEditor
+                  value={draft.recurrence}
+                  anchorIso={draft.due_date}
+                  onChange={(recurrence) => onChange({ ...draft, recurrence })}
+                />
+              ) : null}
+            </FieldRow>
+          ) : null}
           <FieldRow label="Status:">
             <Select
               title="Status"

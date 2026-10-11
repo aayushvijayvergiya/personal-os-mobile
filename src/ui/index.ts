@@ -21,4 +21,5 @@ export { TextArea } from "./TextArea";
 export { TitleBar } from "./TitleBar";
 export { ToastHost, showToast } from "./Toast";
 export { Txt, type TxtVariant } from "./Txt";
+export { WeekdayPicker } from "./WeekdayPicker";
 export { Window } from "./Window";
